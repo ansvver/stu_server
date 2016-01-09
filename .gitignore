@@ -1,2 +1,5 @@
 out/
 train_data/
+.idea/
+mould.file
+stu_server.iml
