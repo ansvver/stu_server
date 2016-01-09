@@ -4,8 +4,6 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import static java.lang.Thread.sleep;
-
 public class ImageReceiver {
     private int port = 8821;
 
@@ -28,7 +26,7 @@ public class ImageReceiver {
 
                     System.out.println("" + s.getInetAddress().getCanonicalHostName() + " - "+ s.getPort() );
                 System.out.println("建立socket链接");
-                String savePath = "C:\\";
+                String savePath = "D:\\";
                 DataInputStream fis = new DataInputStream(new BufferedInputStream(s.getInputStream()));
                 savePath += fis.readUTF();
                 DataOutputStream fileOut = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(savePath)));

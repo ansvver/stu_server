@@ -20,26 +20,49 @@ public class StuTool {
     private Map<String, int[]> tuxiang_mould = null;
     private Map<String, int[]> xuanxiang_mould = null;
     private Map<String, int[]> wenzi_mould = null;
+    private List<Map<String, int[]>> moulds = null;
     public static int IMAGE_WIDTH = 75;
     public static int IMAGE_HEIGHT = 75;
 
 
     public StuTool() {
-        List<Map<String, int[]>> moulds = gen_moulds();
+        File mould_file = new File("mould.file");
+        if (!mould_file.exists()) {
+            try {
+                moulds = gen_moulds();
+            } catch (Exception e) {
+                System.out.println("Mould Build Failed!!!");
+                e.printStackTrace();
+            }
+            ObjectFileConvert.object2File(moulds, "mould.file");
+        } else {
+            moulds = (List<Map<String, int[]>>)ObjectFileConvert.file2Object("mould.file");
+        }
         this.tuxiang_mould = moulds.get(0);
         this.xuanxiang_mould = moulds.get(1);
         this.wenzi_mould = moulds.get(2);
     }
 
     public StuTool(String filename) {
+        File mould_file = new File("mould.file");
+        if (!mould_file.exists()) {
+            try {
+                moulds = gen_moulds();
+            } catch (Exception e) {
+                System.out.println("Mould Build Failed!!!");
+                e.printStackTrace();
+            }
+            ObjectFileConvert.object2File(moulds, "mould.file");
+        } else {
+            moulds = (List<Map<String, int[]>>)ObjectFileConvert.file2Object("mould.file");
+        }
         try {
             this.bi = ImageIO.read(new File(filename));
-            List<Map<String, int[]>> moulds = gen_moulds();
             this.tuxiang_mould = moulds.get(0);
             this.xuanxiang_mould = moulds.get(1);
             this.wenzi_mould = moulds.get(2);
         } catch (Exception e) {
-            System.out.println("Image File Not Found!");
+            System.out.println("Image File Not Found or Mould Build FailedSS!");
             e.printStackTrace();
         }
     }
@@ -127,25 +150,25 @@ public class StuTool {
         String result = "";
         try {
             List<List<BufferedImage>> img = regenImages(this.bi);
-            List<List<int[]>> test_datas = new ArrayList<>();
+            List<int[]> test_datas = new ArrayList<>();
             BufferedImage tuxiang = img.get(0).get(0);
-            test_datas.add(gen_test_datas(true, tuxiang));
+            test_datas.add(img2arr(tuxiang));
             BufferedImage xuanxiang1 = img.get(1).get(0);
-            test_datas.add(gen_test_datas(false, xuanxiang1));
+            test_datas.add(img2arr(xuanxiang1));
             BufferedImage wenzi1 = img.get(1).get(1);
-            test_datas.add(gen_test_datas(false, wenzi1));
+            test_datas.add(img2arr(wenzi1));
             BufferedImage xuanxiang2 = img.get(2).get(0);
-            test_datas.add(gen_test_datas(false, xuanxiang2));
+            test_datas.add(img2arr(xuanxiang2));
             BufferedImage wenzi2 = img.get(2).get(1);
-            test_datas.add(gen_test_datas(false, wenzi2));
+            test_datas.add(img2arr(wenzi2));
             BufferedImage xuanxiang3 = img.get(3).get(0);
-            test_datas.add(gen_test_datas(false, xuanxiang3));
+            test_datas.add(img2arr(xuanxiang3));
             BufferedImage wenzi3 = img.get(3).get(1);
-            test_datas.add(gen_test_datas(false, wenzi3));
+            test_datas.add(img2arr(wenzi3));
             BufferedImage xuanxiang4 = img.get(4).get(0);
-            test_datas.add(gen_test_datas(false, xuanxiang4));
+            test_datas.add(img2arr(xuanxiang4));
             BufferedImage wenzi4 = img.get(4).get(1);
-            test_datas.add(gen_test_datas(false, wenzi4));
+            test_datas.add(img2arr(wenzi4));
             List<String[]> result_list = predict(test_datas);
             System.out.println("---" + result_list.get(0)[1] + "---" + result_list.get(0)[0]);
             System.out.println("---" + result_list.get(1)[1] + "---" + result_list.get(1)[0]);
@@ -194,21 +217,43 @@ public class StuTool {
                     max_f = Float.parseFloat(result_list.get(8)[1]);
                 }
                 if (result.equals("")) {
-                    if (Float.parseFloat(result_list.get(1)[1]) > max_f) {
-                        max_f = Float.parseFloat(result_list.get(1)[1]);
-                        result = result_list.get(1)[0].replace("_", "").toUpperCase();
+                    int tuxiangPixelCount = -1;
+                    for (Map.Entry<String, int[]> m : this.wenzi_mould.entrySet()) {
+                        String class_name = m.getKey();
+                        if (class_name.equals(tuxiang_result)) {
+                            tuxiangPixelCount = m.getValue()[m.getValue().length - 1];
+                            break;
+                        }
                     }
-                    if (Float.parseFloat(result_list.get(3)[1]) > max_f) {
-                        max_f = Float.parseFloat(result_list.get(3)[1]);
-                        result = result_list.get(3)[0].replace("_", "").toUpperCase();
-                    }
-                    if (Float.parseFloat(result_list.get(5)[1]) > max_f) {
-                        max_f = Float.parseFloat(result_list.get(5)[1]);
-                        result = result_list.get(5)[0].replace("_", "").toUpperCase();
-                    }
-                    if (Float.parseFloat(result_list.get(7)[1]) > max_f) {
-                        max_f = Float.parseFloat(result_list.get(7)[1]);
-                        result = result_list.get(7)[0].replace("_", "").toUpperCase();
+                    if (tuxiangPixelCount == -1) {
+                        if (Float.parseFloat(result_list.get(1)[1]) > max_f) {
+                            max_f = Float.parseFloat(result_list.get(1)[1]);
+                            result = result_list.get(1)[0].replace("_", "").toUpperCase();
+                        }
+                        if (Float.parseFloat(result_list.get(3)[1]) > max_f) {
+                            max_f = Float.parseFloat(result_list.get(3)[1]);
+                            result = result_list.get(3)[0].replace("_", "").toUpperCase();
+                        }
+                        if (Float.parseFloat(result_list.get(5)[1]) > max_f) {
+                            max_f = Float.parseFloat(result_list.get(5)[1]);
+                            result = result_list.get(5)[0].replace("_", "").toUpperCase();
+                        }
+                        if (Float.parseFloat(result_list.get(7)[1]) > max_f) {
+                            max_f = Float.parseFloat(result_list.get(7)[1]);
+                            result = result_list.get(7)[0].replace("_", "").toUpperCase();
+                        }
+                    } else  {
+                        int minDiff = tuxiangPixelCount;
+                        int[] wenziArr = new int[]{2, 4, 6, 8};
+                        int simularXuanXiangIndex = 0;
+                        for (int wenziI : wenziArr) {
+                            int wenziCount = test_datas.get(wenziI)[test_datas.get(wenziI).length - 1];
+                            if (Math.abs(wenziCount - tuxiangPixelCount) < minDiff) {
+                                simularXuanXiangIndex = wenziI - 1;
+                                minDiff = Math.abs(wenziCount - tuxiangPixelCount);
+                            }
+                        }
+                        result = result_list.get(simularXuanXiangIndex)[0].replace("_", "").toUpperCase();
                     }
                 }
             }
@@ -501,7 +546,6 @@ public class StuTool {
         CleanedBufferedImage cbi1 = clean(_cbi1.getCbi(), 0);
         CleanedBufferedImage cbi2 = clean(_cbi2.getCbi(), 0);
         CleanedBufferedImage cbi3 = clean(_cbi3.getCbi(), 0);
-//      int tuCount = _cbi1.getCount();
         BufferedImage tu = cbi1.getCbi();
         BufferedImage zi1 = cbi2.getCbi();
         BufferedImage zi2 = cbi3.getCbi();
@@ -518,24 +562,6 @@ public class StuTool {
             zi1 = cbi1.getCbi();
             zi2 = cbi2.getCbi();
         }
-
-
-
-/*
-
-        if (tuCount > _cbi2.getCount()) {
-            tu = cbi2.getCbi();
-            tuCount = cbi2.getCount();
-            zi1 = cbi1.getCbi();
-            zi2 = cbi3.getCbi();
-        }
-        if (tuCount > _cbi3.getCount()) {
-            tu = cbi3.getCbi();
-            // tuCount = cbi3.getCount();
-            zi1 = cbi1.getCbi();
-            zi2 = cbi2.getCbi();
-        }
-        */
         List<BufferedImage> tu_list = new ArrayList<>();
         BufferedImage tuxiang = rotateClipScale(tu, true, StuTool.IMAGE_WIDTH, StuTool.IMAGE_HEIGHT);
         tu_list.add(tuxiang);
@@ -656,20 +682,20 @@ public class StuTool {
         }
     }
 
-/*    public void train() {
-        String[] argvTrain = {
-                "data\\img.train",
-                "data\\img.model"
-        };
-        svm_train svmt = new svm_train();
-        try {
-            System.out.println("training...");
-            svmt.main(argvTrain);
-            System.out.println("done!");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }*/
+//    public void train() {
+//        String[] argvTrain = {
+//                "data\\img.train",
+//                "data\\img.model"
+//        };
+//        svm_train svmt = new svm_train();
+//        try {
+//            System.out.println("training...");
+//            svmt.main(argvTrain);
+//            System.out.println("done!");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     private void gen_test_data() throws Exception {
         String test_data_path = "source_data\\test\\";
@@ -715,7 +741,7 @@ public class StuTool {
             List<int[]> r = new ArrayList<>();
             int idx = 1;
             for (BufferedImage _bi : bil) {
-                ImageIO.write(_bi, "PNG", new File("C:\\Program Files\\Git\\tmp\\" + idx + ".png"));
+                ImageIO.write(_bi, "PNG", new File("tmp\\" + idx + ".png"));
                 idx++;
                 int[] img_data = img2arr(bi);
                 r.add(img_data);
@@ -727,10 +753,16 @@ public class StuTool {
 
     private List<int[]> gen_test_datas(boolean isTuxiang, BufferedImage bi) throws Exception {
         List<int[]> res = new ArrayList<>();
+        res.add(img2arr(bi));
+        return res;
+    }
+
+    private List<int[]> gen_test_datas_deprecated(boolean isTuxiang, BufferedImage bi) throws Exception {
+        List<int[]> res = new ArrayList<>();
         List<BufferedImage> bil = RotateImage.RotateTestList(bi, isTuxiang, StuTool.IMAGE_WIDTH, StuTool.IMAGE_HEIGHT);
         int idx = 1;
         for (BufferedImage _bi : bil) {
-            ImageIO.write(_bi, "PNG", new File("C:\\Program Files\\Git\\tmp\\" + idx + ".png"));
+            ImageIO.write(_bi, "PNG", new File("tmp\\" + idx + ".png"));
             idx++;
             int[] img_data = img2arr(bi);
             res.add(img_data);
@@ -738,9 +770,11 @@ public class StuTool {
         return res;
     }
 
+
     public int[] img2arr(BufferedImage img) {
         int arr_size = img.getHeight() * img.getWidth() / (Integer.SIZE - 1);
         if (arr_size % (Integer.SIZE - 1) != 0) arr_size += 1;
+        arr_size += 1;
         int[] img_data = new int[arr_size];
         int width = img.getWidth();
         int height = img.getHeight();
@@ -748,21 +782,24 @@ public class StuTool {
         for (int i = 0; i < arr_size; i++) {
             img_data[i] = 0;
         }
+        int pixel_count = 0;
         for (int x = 0; x < width; ++x) {
             for (int y = 0; y < height; ++y) {
                 int arr_index = pixel_idx / (Integer.SIZE - 1);
                 int arr_bin_index = pixel_idx % (Integer.SIZE - 1);
                 img_data[arr_index] += isBlack(img.getRGB(x, y)) << arr_bin_index;
+                pixel_count += isBlack(img.getRGB(x, y));
                 pixel_idx++;
             }
         }
+        img_data[arr_size - 1] = pixel_count;
         return img_data;
     }
 
-    private List<Map<String, int[]>> gen_moulds() {
-        String tuxiang_data_path = "train_data\\tuxiang";
-        String xuanxiang_data_path = "train_data\\xuanxiang";
-        String wenzi_data_path = "train_data\\wenzi";
+    private List<Map<String, int[]>> gen_moulds() throws Exception{
+        String tuxiang_data_path = "train_data" + File.separator +"tuxiang";
+        String xuanxiang_data_path = "train_data" + File.separator +"xuanxiang";
+        String wenzi_data_path = "train_data" + File.separator +"wenzi";
         File tuxiang_data_dir = new File(tuxiang_data_path);
         File xuanxiang_data_dir = new File(xuanxiang_data_path);
         File wenzi_data_dir = new File(wenzi_data_path);
@@ -780,15 +817,6 @@ public class StuTool {
             return null;
         }
         File[] data_type_dir_arr = new File[]{tuxiang_data_dir, xuanxiang_data_dir, wenzi_data_dir};
-//        File[] data_type_dir_arr = train_data_dir.listFiles();
-//        BufferedWriter fw = null;
-//        try {
-//            fw = new BufferedWriter(new FileWriter(new File("data\\img.mould")));
-//        } catch (Exception e) {
-//            System.out.println("Fail to write img.mould file.");
-//            e.printStackTrace();
-//            return mould;
-//        }
         for (File data_type_dir : data_type_dir_arr) {
             if (!data_type_dir.isDirectory()) {
                 System.out.println("train_data path [" + data_type_dir.getAbsolutePath() + "] is not a directory!");
@@ -796,10 +824,10 @@ public class StuTool {
             }
             File[] data_type_sub_dir_arr = data_type_dir.listFiles();
             Map<String, int[]> m = new HashMap<>();
-            //boolean first_line = true;
             for (File class_name_dir : data_type_sub_dir_arr) {
                 if (!class_name_dir.isDirectory()) continue;
                 String class_name = class_name_dir.getName();
+
                 if (class_name.contains("_")) {
                     class_name = class_name.toUpperCase().replace("_", "");
                 }
@@ -813,43 +841,23 @@ public class StuTool {
                         continue;
                     }
                     if (img != null) {
-                        String img_data_str = "" + class_name + " ";
-//                        if (!first_line) {
-//                            try {
-//                                fw.newLine();
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                        }
-//                        first_line = false;
-                        int[] img_data = img2arr(img);
-                        while (m.containsKey(class_name)) {
-                            class_name += "_";
+                        if (class_name.contains(".img")) {
+                            img = rotateClipScale(img, true, StuTool.IMAGE_WIDTH, StuTool.IMAGE_HEIGHT);
                         }
-                        m.put(class_name, img_data);
-                        for (int i : img_data) {
-                            img_data_str += "" + i + " ";
+                        List<BufferedImage> img_l = RotateImage.RotateMouldList(img, class_name.contains(".img"), StuTool.IMAGE_WIDTH, StuTool.IMAGE_HEIGHT);
+                        for (BufferedImage _img : img_l) {
+                            int[] img_data = img2arr(_img);
+                            while (m.containsKey(class_name)) {
+                                class_name += "_";
+                            }
+                            m.put(class_name, img_data);
                         }
-//                        try {
-//                            fw.write(img_data_str.trim());
-//                        } catch (Exception e) {
-//                            System.out.println("Fail to write img.mould with (" +
-//                                    img_data_str +
-//                                    ")");
-//                            continue;
-//                        }
+
                     }
                 }
             }
             moulds.add(m);
         }
-//        }
-//        try {
-//            fw.flush();
-//            fw.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
         return moulds;
     }
 
@@ -861,7 +869,7 @@ public class StuTool {
         return c;
     }
 
-    private List<String[]> predict(List<List<int[]>> test_list) {
+    private List<String[]> predict_deprecated(List<List<int[]>> test_list) {
         List<String[]> res = new ArrayList<>();
         if (this.tuxiang_mould == null || this.wenzi_mould == null || this.xuanxiang_mould == null) {
             System.out.println("The mould contains NULL, please check it!");
@@ -875,9 +883,9 @@ public class StuTool {
             if (i == 2 || i == 4 || i == 6 || i == 8) mould = this.wenzi_mould;
             double max_matrio = 0.0;
             String res_name = "";
-            for (int[] img_data: img_data_list) {
+            for (int[] img_data : img_data_list) {
                 int img_len = 0;
-                for (int j = 0; j < img_data.length; j++) {
+                for (int j = 0; j < img_data.length - 1; j++) {
                     img_len += bitCount(img_data[j]);
                 }
                 for (Map.Entry<String, int[]> m : mould.entrySet()) {
@@ -885,83 +893,76 @@ public class StuTool {
                     String class_name = m.getKey();
                     int[] m_data = m.getValue();
                     int m_len = 0;
-                    for (int j = 0; j < m_data.length; j++) {
+                    for (int j = 0; j < m_data.length - 1; j++) {
                         current_len += bitCount(m_data[j] & img_data[j]);
                         m_len += bitCount(m_data[j]);
                     }
-//                    double gap_ratio = 0.0;
-//                    if (m_len > img_len) gap_ratio =  Math.log(m_len - img_len) + 10E-10;
-//                    else if (img_len > m_len) gap_ratio = Math.log(img_len - m_len) + 10E-10;
-//                    else gap_ratio = 10E-10;
-                    double current_matrio =  2 * current_len / (double) (img_len + m_len);
+                    double current_matrio = 2 * current_len / (double) (img_len + m_len);
                     if (current_matrio > max_matrio) {
                         max_matrio = current_matrio;
                         res_name = class_name;
                     }
-                    //System.out.println(current_len);
-                    //System.out.println(m_len);
-                    //System.out.println(current_matrio);
                 }
             }
-            res.add(new String[]{res_name.replace("_", ""), ""+max_matrio});
+            res.add(new String[]{res_name.replace("_", ""), "" + max_matrio});
         }
         return res;
     }
 
+
+    private List<String[]> predict(List<int[]> test_list) {
+        List<String[]> res = new ArrayList<>();
+        if (this.tuxiang_mould == null || this.wenzi_mould == null || this.xuanxiang_mould == null) {
+            System.out.println("The mould contains NULL, please check it!");
+            return null;
+        }
+        for (int i = 0; i < test_list.size(); i++) {
+            int[] img_data = test_list.get(i);
+            Map<String, int[]> mould = new HashMap<>();
+            if (i == 0) mould = this.tuxiang_mould;
+            if (i == 1 || i == 3 || i == 5 || i == 7) mould = this.xuanxiang_mould;
+            if (i == 2 || i == 4 || i == 6 || i == 8) mould = this.wenzi_mould;
+            double max_matrio = 0.0;
+            String res_name = "";
+            int img_len = 0;
+            for (int j = 0; j < img_data.length - 1; j++) {
+                img_len += bitCount(img_data[j]);
+            }
+            for (Map.Entry<String, int[]> m : mould.entrySet()) {
+                int current_len = 0;
+                String class_name = m.getKey();
+                int[] m_data = m.getValue();
+                int m_len = 0;
+                for (int j = 0; j < m_data.length - 1; j++) {
+                    current_len += bitCount(m_data[j] & img_data[j]);
+                    m_len += bitCount(m_data[j]);
+                }
+                double current_matrio = 2 * current_len / (double) (img_len + m_len);
+                if (current_matrio > max_matrio) {
+                    max_matrio = current_matrio;
+                    res_name = class_name;
+                }
+            }
+            res.add(new String[]{res_name.replace("_", ""), "" + max_matrio});
+        }
+        return res;
+    }
+
+    public List<Map<String, int[]>> getMoulds() {
+        return this.moulds;
+    }
     public static void main(String[] args) throws Exception {
         StuTool st = new StuTool();
         System.out.println("------------RESULT----------------");
-        st.setImage("C:\\Program Files\\Git\\workspace\\stu\\pic\\1447915815677.png");
+        long startTime=System.currentTimeMillis();
+        st.setImage("pic\\1447915797272.png");
         System.out.println(st.stu());
-        st.setImage("C:\\Program Files\\Git\\workspace\\stu\\pic\\1447915815770.png");
+        long endTime=System.currentTimeMillis();
+        System.out.println("程序运行时间： "+(endTime-startTime)+"ms");
+        startTime=System.currentTimeMillis();
+        st.setImage("pic\\1447915796482.png");
         System.out.println(st.stu());
-        st.setImage("C:\\Program Files\\Git\\workspace\\stu\\pic\\1447915815899.png");
-        System.out.println(st.stu());
-        st.setImage("C:\\Program Files\\Git\\workspace\\stu\\pic\\1447915815996.png");
-        System.out.println(st.stu());
-        st.setImage("C:\\Program Files\\Git\\workspace\\stu\\pic\\1447915816099.png");
-        System.out.println(st.stu());
-        st.setImage("C:\\Program Files\\Git\\workspace\\stu\\pic\\1447915816209.png");
-        System.out.println(st.stu());
-        //st.setImage("F:\\BaiduYunDownload\\pic\\pic\\3.png");
-        //st.stu();
-        //st.pre_train();
-        //st.gen_train_data();
-//        st.gen_test_data();
-//        st.train();
-//        String[] parg = { "data\\img.test", // 这个是存放测试数据
-//                "data\\img.model", // 调用的是训练以后的模型
-//                "data\\img.result" }; // 生成的结果的文件的路径
-//        svm_predict p = new svm_predict();
-//        p.main(parg);
-        //st.gen_mould();
-
-        //Map<String, int[]> mould = st.gen_mould();
-//
-//        List<List<int[]>> test_list = st.gen_test_datas(true, "C:\\Program Files\\Git\\workspace\\stu\\source_data\\test\\135.png");
-//
-//        List<String[]> res_list = st.predict(test_list);
-//
-//        System.out.println("___RESULT___");
-//        for (String[] res_str : res_list) {
-//            System.out.println(res_str[0]);
-//            System.out.println(res_str[1]);
-//        }
-////
-//        st.rotateClipScale(ImageIO.read(new File("C:\\Program Files\\Git\\workspace\\stu\\source_data\\tmp\\t\\1.png")),true,75, 75);
-//        BufferedImage res = st.rotateClipScale(RotateImage.Rotate(ImageIO.read(new File("C:\\Program Files\\Git\\workspace\\stu\\source_data\\tmp\\t\\1.png")), 91, 75, 75), true, 75, 75);
-//        BufferedImage res1 = RotateImage.Rotate(ImageIO.read(new File("C:\\Program Files\\Git\\workspace\\stu\\source_data\\tmp\\t\\1.png")), 180, 75, 75);
-//        ImageIO.write(res, "PNG", new File("C:\\Program Files\\Git\\workspace\\stu\\source_data\\tmp\\t\\1_.png"));
-//        ImageIO.write(res1, "PNG", new File("C:\\Program Files\\Git\\workspace\\stu\\source_data\\tmp\\t\\1__.png"));
-
-
-//        Map<String, int[]> m = new HashMap<>();
-//        m.put("a", new int[]{1, 2, 3});
-//        int a = 0x7fffffff;
-//        System.out.println(a);
-//        int b = 1 << 3;
-//        System.out.println(b & a);
-//        System.out.println(st.bitCount(a));
-//        System.out.println(m.get("a")[2]);
+        endTime=System.currentTimeMillis();
+        System.out.println("程序运行时间： "+(endTime-startTime)+"ms");
     }
 }
